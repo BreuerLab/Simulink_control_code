@@ -18,6 +18,8 @@ if ~exist('range_x', 'var') || isempty(range_x)
 end
 
 if ~exist('bias','var') || isempty(bias)
+    bias.pitch = [0,0];
+    bias.heave = [0,0];
     bias.Wallace = 0;
     bias.Gromit = 0;
 end
@@ -30,11 +32,11 @@ else
     offset_h2 = offset_home(4);
 end
 
-raw_encoders(raw_encoders(:,1:2)>1e6) = raw_encoders(raw_encoders(:,1:2)>1e6)-2^32;
+% raw_encoders(raw_encoders(:,1:2)>1e6) = raw_encoders(raw_encoders(:,1:2)>1e6)-2^32;
 
-out(:,1) = deg2rad((raw_encoders(range_x,1)).*2*pi/10000);
+out(:,1) = -(raw_encoders(range_x,1)).*2*pi/10000 - deg2rad(bias.pitch(1));
 out(:,2) = -raw_encoders(range_x,2).*0.0254/8000;
-out(:,3) = deg2rad(conv_encodertheta_traverse(raw_encoders(range_x,3), 0)) - deg2rad(offset_p2);
+out(:,3) = deg2rad(conv_encodertheta_traverse(raw_encoders(range_x,3), 0)) - deg2rad(offset_p2) - deg2rad(bias.pitch(2));
 out(:,4) = conv_encodery_traverse(raw_encoders(range_x,4), 0) - offset_h2;
 
 out(:,5) = ref_signal(range_x);

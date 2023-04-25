@@ -76,9 +76,16 @@
     pause(sim_time);
     disp('Acquiring data...')
 
+    load_num = 0;
     while ~exist('raw_encoder_p1','var') || ~exist('raw_encoder_h1','var') || ~exist('raw_encoder_p2','var') || ~exist('raw_encoder_h2','var') || ~exist('raw_force_wallace','var') || ~exist('raw_force_gromit','var') || ~exist('ref_signal','var')
-            pause(5)
-            disp('Loading...')
+        load_num = load_num + 1;
+        pause(5)
+        disp('Loading...')
+        if load_num > 15
+            message = strjoin(['There is a problem with the current experiment. Please come to evaluate. Timestamp:',string(datetime)]);
+            sendmail('eric_handy-cardenas@brown.edu','Experiment error',message);
+            error('Data acquisition not working.')
+        end
     end
     
 %     sim_status = 'running';
@@ -96,7 +103,7 @@
 
     %% Calculate force biases
     
-    range_x = find(ref_signal);
+    range_x = find(ref_signal==1);
     range_x = range_x(1000:end);
 
     bias.Wallace = mean(raw_force_wallace(range_x,:),1);

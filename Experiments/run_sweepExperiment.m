@@ -1,46 +1,51 @@
 %% Parameter sweep
 
-% cd('R:\ENG_Breuer_Shared\ehandyca\handy_simulink_control_code')
+cd('R:\ENG_Breuer_Shared\ehandyca\handy_simulink_control_code\Simulink_control_code\')
 
 if ~exist('experiment','var') ||  ~exist('bias_unloaded','var') || ~exist('bias_loaded','var')
     error('Run "setup_DAQ_simulink" to establish experimental setup. Vars "experiment", "bias_unloaded", "bias_loaded" must be established.')
 end
 
 % Date (don't auto-generate date in case experiment runs overnight)
-date_start = '20230418';
+date_start = '20230424'; 
 
 % Save folder location
-FOLDERNAME = (['R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\',date_start,'_TandemTuesday_4c_separation_3alphaSweep_diffAlphaValues_APHPH_A3E_02']);
+% FOLDERNAME = 'D:\Experiments\2foil\20230422_TandemSaturday_3alpha_4c_separation_A3E';
+FOLDERNAME = (['R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\',date_start,'_TandemMonday_4c_separation_3alphaSweep_A3E_partTwo']);
 mkdir(FOLDERNAME);
+
+% FOLDERNAME = experiment.fname;
 
 %% Sweep parameters
 
 % non-changing parameters
 U = 0.33;
 phi = -90;
-num_cyc = 20;
-transient_cycs = 3;
-fred = 0.11;
+num_cyc = 25;
+transient_cycs = 5;
+fred = 0.12;
 freq = fred*U/foil.chord;
 % freq = 0.65; % very close ~0.649
 
 % non-dim parameters
-P1star_vec = [50,60,80];
-H1star = 1.2;
-P2star_vec = 70; % 65,75
-H2star_vec = [0.6,0.8,1.0,1.2,1.4,1.6];
-% H2star_vec = [0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2];
-% H2star_vec = [1.4,1.6,1.8,2.0,2.2];
+P1star_vec = [40,50,70];
+H1star = 0.8;
+P2star_vec = [65,75];
+% H2star_vec = [0.6,0.8,1.0,1.2,1.4,1.6];
+H2star_vec = [0.6,0.8,1.0,1.2,1.4,1.6,1.8];
 
-phase_vec = [-180,-120,-60,0,60,120,180];
+phase_vec = [-180,-120,-60,0,60,120];
 
 %% Experimental loop
+
+exp_num = 0;
 
 for P1star = P1star_vec
     for P2star = P2star_vec
         for H2star = H2star_vec
             for phase = phase_vec
 
+                exp_num = exp_num + 1;
                 %% Take experiment bias measurement
                 
                 bias = bias_loaded; % use bias_loaded as the bias to update the pitch and heave biases in the "fin_bias_simulink" routine
@@ -60,7 +65,7 @@ for P1star = P1star_vec
                 heave2 = H2star*foil.chord;
                 
                 freq = fred*U/foil.chord;
-                freq = 0.65;
+%                 freq = 0.65;
 
                 aT4 = atan(-2*pi*(heave1/foil.chord)*fred) + deg2rad(pitch1);
 
@@ -81,12 +86,13 @@ for P1star = P1star_vec
                 [~, rprof5] = generate_profile(num_cyc-4, freq, experiment.srate, transient_cycs+2, transient_cycs+2, 1, 0, 1); % reference signal
                 
                 clear profs
+                dumb_delay = 50; % phase difference between pitch wallace and heave wallace (heave lags behind pitch)
                 % Assemble output profiles
-                profs(:,1) = [zeros(experiment.motion_delay,1); ramp_p1; pprof1+experiment.offset_home(1)+bias_trial.pitch(1); flip(ramp_p1)];
-                profs(:,2) = [zeros(experiment.motion_delay,1); ramp_h1; pprof2+experiment.offset_home(2)+bias_trial.heave(1); flip(ramp_h1)];
-                profs(:,3) = [ramp_p2; pprof3+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
-                profs(:,4) = [ramp_h2; pprof4+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1)];
-                profs(:,5) = [zeros(experiment.motion_delay,1); zeros(size(ramp_p1)); rprof5; zeros(size(ramp_p1))]; % reference signal
+                profs(:,1) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); ramp_p1; pprof1+experiment.offset_home(1)+bias_trial.pitch(1); flip(ramp_p1)];
+                profs(:,2) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); ramp_h1; pprof2+experiment.offset_home(2)+bias_trial.heave(1); flip(ramp_h1)];
+                profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pprof3+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
+                profs(:,4) = [ramp_h2; pprof4+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
+                profs(:,5) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); zeros(size(ramp_p1)); rprof5; zeros(size(ramp_p1))]; % reference signal
                 
                 % plot trajectories
                 plot_profiles(profs);
@@ -113,10 +119,25 @@ for P1star = P1star_vec
                 disp('Running traverse...')
                 pause(sim_time);
                 disp('Acquiring data...')
+                load_num = 0;
+                flag_to_next = 0; % for the daq error
                 while ~exist('raw_encoder_p1','var') || ~exist('raw_encoder_h1','var') || ~exist('raw_encoder_p2','var') || ~exist('raw_encoder_h2','var') || ~exist('raw_force_wallace','var') || ~exist('raw_force_gromit','var') || ~exist('ref_signal','var')
-                        pause(5)
-                        disp('Loading...')
+                    load_num = load_num + 1;
+                    pause(5)
+                    disp('Loading...')
+                    if load_num > 15
+                        message = strjoin(['There is a problem with the current experiment. Please come to evaluate. Timestamp:',string(datetime)]);
+                        sendmail('eric_handy-cardenas@brown.edu','Experiment error',message);
+                        warning('Data acquisition not working.')
+                        flag_to_next = 1;
+                        break;
+                    end
                 end
+
+                if flag_to_next == 1 % if there was an issue building simulink model, skip and go to next trial
+                    continue;
+                end
+
                 disp('Done')
                                 
                 %% Data conversion
@@ -128,31 +149,39 @@ for P1star = P1star_vec
                 %% Save data
 
                 motor_warning_flag = 0;
-                FILENAME = (['\',date_start,'_TandemTuesday_4c_separation_3alphaSweep_diffAlpha_',...
+                FILENAME = (['\',date_start,'_TandemMonday _4c_separation_3alphaSweep_',...
                     'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
 
                 save(fullfile(FOLDERNAME,FILENAME));
 
                 %% Check for misalignment
                 
-                if abs(mean(out(:,18))) > 0.08 % if average value of symmetric signal is more than 0.5 deg
-                    warning('Gromit pitch motor (Hudson) jerked. Foil will be realigned and trial will be repeated');
-                    motor_warning_flag = 1; % raises flag if misalignment due to jerk was detected
-                    FILENAME = ([date_start,'_TandemTuesday_4c_separation_3alphaSweep_diffAlpha_',...
-                        'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
-
-                    % realign gromit
-                    traverse = 'g';
-                    run("find_zero_pitch_simulink.m")
-
-                end
+%                 if abs(mean(out(:,18))) > 0.08 % if average value of symmetric signal is more than 0.5 deg
+%                     warning('Gromit pitch motor (Hudson) jerked. Foil will be realigned and trial will be repeated');
+%                     motor_warning_flag = 1; % raises flag if misalignment due to jerk was detected
+%                     FILENAME = ([date_start,'_TandemTuesday_4c_separation_3alphaSweep_diffAlpha_',...
+%                         'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
+% 
+%                     % realign gromit
+%                     traverse = 'g';
+%                     run("find_zero_pitch_simulink.m")
+% 
+%                 end
                 close all
+
+                if mod(exp_num,15) == 0
+                    message = strjoin(['Finished trial ',num2str(exp_num),'. Experiment is still running. Timestamp: ',string(datetime)]);
+                    % NOTE: add a subroutine that generates a 'report card' as a pdf and appends it to the email sent as a quality check.
+                    sendmail('eric_handy-cardenas@brown.edu','Experiment running',message);
+                end
             end
         end
     end
+    message = strjoin(['One aT4 loop has been completed at: ',string(datetime)]);
+    sendmail('eric_handy-cardenas@brown.edu','Experiment running',message);
 end
 
-message = ['The experiment finished at ',string(datetime),'. Come and check it out!'];
+message = strjoin(['The whole experiment finished at ',string(datetime),'. Come and check it out!']);
 sendmail('eric_handy-cardenas@brown.edu','Experiment done',message);
 
 disp('End of experiment')

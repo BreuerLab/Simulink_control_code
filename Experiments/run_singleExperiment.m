@@ -1,23 +1,32 @@
 %% Single experiment
 
-cd('R:\ENG_Breuer_Shared\ehandyca\handy_simulink_control_code')
+cd('R:\ENG_Breuer_Shared\ehandyca\handy_simulink_control_code\Simulink_control_code\')
 
 if ~exist('experiment','var') ||  ~exist('bias_unloaded','var') || ~exist('bias_loaded','var')
     error('Run "setup_DAQ_simulink" to establish experimental setup. Vars "experiment", "bias_unloaded", "bias_loaded" must be established.')
 end
 
-FOLDERNAME = ('R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230418_TandemTuesday_4c_separation_3alphaSweep_diffAlphaValues_APHPH_A3E');
-mkdir(FOLDERNAME);
+% FOLDERNAME = ('R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230418_TandemTuesday_4c_separation_3alphaSweep_diffAlphaValues_APHPH_A3E');
+% mkdir(FOLDERNAME);
+
+% FOLDERNAME = experiment.fname;
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230424_TandemMonday_4c_separation_3alphaSweep_A3E_partTwo\';
 
 %% Take experiment bias measurement
 
-bias = bias_loaded; % use bias_loaded as the bias to update the pitch and heave biases in the "fin_bias_simulink" routine
-run("find_bias_simulink.m"); % find another loaded bias that contains the drifting and the load bias
-bias_newloaded = bias; % establish new loaded bias
-% for experiment: bias_trial = bias_newloaded - bias_loaded + bias_unloaded
-bias_trial = bias; % inherits pitch and heave biases
-bias_trial.Wallace = bias_newloaded.Wallace - bias_loaded.Wallace + bias_unloaded.Wallace;
-bias_trial.Gromit = bias_newloaded.Gromit - bias_loaded.Gromit + bias_unloaded.Gromit;
+use_bias_measurement = 1;
+
+if use_bias_measurement == 1
+    bias = bias_loaded; % use bias_loaded as the bias to update the pitch and heave biases in the "fin_bias_simulink" routine
+    run("find_bias_simulink.m"); % find another loaded bias that contains the drifting and the load bias
+    bias_newloaded = bias; % establish new loaded bias
+    % for experiment: bias_trial = bias_newloaded - bias_loaded + bias_unloaded
+    bias_trial = bias; % inherits pitch and heave biases
+    bias_trial.Wallace = bias_newloaded.Wallace - bias_loaded.Wallace + bias_unloaded.Wallace;
+    bias_trial.Gromit = bias_newloaded.Gromit - bias_loaded.Gromit + bias_unloaded.Gromit;
+else
+    bias_trial = bias_unloaded;
+end
 
 %% Experiment loop
 
@@ -25,22 +34,28 @@ bias_trial.Gromit = bias_newloaded.Gromit - bias_loaded.Gromit + bias_unloaded.G
 U = 0.33;
 phi = -90;
 num_cyc = 20;
-transient_cycs = 3;
-fred = 0.11;
+transient_cycs = 5;
+fred = 0.12;
 freq = fred*U/foil.chord;
 % freq = 0.65; % very close
 
 % non-dim parameters
-P1star = 0; % pitch amp leading [deg]
-H1star = 0; % heave amp leading [chords]
-P2star = 70; % pitch amp leading [deg]
-H2star = 1.2; % heave amp leading [chords]
+P1star = 70; % pitch amp leading [deg]
+H1star = 0.8; % heave amp leading [chords]
+P2star = 75; % pitch amp leading [deg]
+H2star = 1.4; % heave amp leading [chords]
 
 % dimensional parameters
 pitch1 = P1star;
 heave1 = H1star*foil.chord;
 pitch2 = P2star;
 heave2 = H2star*foil.chord;
+
+% constant amplitude
+const_p1 = 0;
+const_h1 = 0;
+const_p2 = 0;
+const_h2 = 0;
 
 aT4 = atan(-2*pi*(heave1/foil.chord)*fred) + deg2rad(pitch1);
 phase = -180;
@@ -55,19 +70,20 @@ ramp_time = 5; % in [s]
 [~, ramp_p2, ramp_h2] = ramp_fn(ramp_time, experiment.T, bias_trial, experiment.offset_home, 'w');
 
 % Generate experiment profiles
-[~, pprof1] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch1, phi, 0);
-[~, pprof2] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave1, 0, 0);
-[~, pprof3] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch2, phase+phi, 0);
-[~, pprof4] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave2, phase, 0);
+[~, pprof1] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch1, phi, const_p1);
+[~, pprof2] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave1, 0, const_h1);
+[~, pprof3] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch2, phase+phi, const_p2);
+[~, pprof4] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave2, phase, const_h2);
 [~, rprof5] = generate_profile(num_cyc-4, freq, experiment.srate, transient_cycs+2, transient_cycs+2, 1, 0, 1); % reference signal
 
 clear profs
+dumb_delay = 50; % phase difference between pitch wallace and heave wallace (heave lags behind pitch)
 % Assemble output profiles
-profs(:,1) = [zeros(experiment.motion_delay,1); ramp_p1; pprof1+experiment.offset_home(1)+bias_trial.pitch(1); flip(ramp_p1)];
-profs(:,2) = [zeros(experiment.motion_delay,1); ramp_h1; pprof2+experiment.offset_home(2)+bias_trial.heave(1); flip(ramp_h1)];
-profs(:,3) = [ramp_p2; pprof3+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
-profs(:,4) = [ramp_h2; pprof4+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1)];
-profs(:,5) = [zeros(experiment.motion_delay,1); zeros(size(ramp_p1)); rprof5; zeros(size(ramp_p1))]; % reference signal
+profs(:,1) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); ramp_p1; pprof1+experiment.offset_home(1)+bias_trial.pitch(1); flip(ramp_p1)];
+profs(:,2) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); ramp_h1; pprof2+experiment.offset_home(2)+bias_trial.heave(1); flip(ramp_h1)];
+profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pprof3+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
+profs(:,4) = [ramp_h2; pprof4+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
+profs(:,5) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); zeros(size(ramp_p1)); rprof5; zeros(size(ramp_p1))]; % reference signal
 
 % plot trajectories
 plot_profiles(profs);
@@ -108,9 +124,12 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20230418_singleFoil_noAmpTest1_TrailingEffectOnFront_',...
+FILENAME = (['\20230424_TandemMonday_test_4c_00_',...
     'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
 
 save(fullfile(FOLDERNAME,FILENAME));
+
+% message = strjoin(['This is a test email sent at ',string(datetime),'from the Flume.']);
+% sendmail('eric_handy-cardenas@brown.edu','Experiment done',message);
 
 close all

@@ -14,8 +14,10 @@ experiment = setupPrompt(srate);
 foil = foils_database(experiment.foil_shape);
 
 % expected time delay between Gromit and Wallace (Gromit leading motion)
-experiment.motion_delay = 35;
+experiment.motion_delay = 13;
 disp(['NOTE: Expected time delay between Gromit and Wallace motions (Gromit leading the motion) is set to ',num2str(experiment.motion_delay),' ms']);
+
+clearvars -except experiment foil srate T
 
 %% Unloaded bias measurement
 
@@ -29,7 +31,7 @@ pause()
 
 run("find_bias_simulink.m")
 
-clearvars -except experiment foil srate T out raw_encoders raw_wallace raw_gromit bias
+clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
 
 %% Find zero pitch
 
@@ -47,7 +49,7 @@ if strcmp(align_ans,'y')
     
     run("find_zero_pitch_simulink.m")
     
-    clearvars -except experiment foil srate T out raw_encoders raw_wallace raw_gromit bias
+    clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
 end
 
 align_ans = input(['Run "find_zero_pitch" for Wallace? y/n + Enter',newline],"s");
@@ -62,9 +64,9 @@ end
 
 % Assign aligned pitch bias to unloaded bias variable
 disp('Updating "bias_unloaded" with alignment.')
-bias.pitch(2) = 0.7192; % temporary 20230418
+bias.pitch(2) = 0.7192+0.2+0.4; % temporary 20230424
 bias_unloaded = bias;
-clearvars -except experiment foil srate T out raw_encoders raw_wallace raw_gromit bias bias_unloaded
+clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded
 
 %% Loaded bias measurement
 
@@ -80,7 +82,7 @@ run("find_bias_simulink.m")
 
 % Assign bias to loaded bias variable
 bias_loaded = bias;
-clearvars -except experiment foil srate T out raw_encoders raw_wallace raw_gromit bias bias_unloaded bias_loaded
+clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded bias_loaded
 
 %% Ready
 
