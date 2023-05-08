@@ -10,7 +10,7 @@ end
 % mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
-FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230424_TandemMonday_4c_separation_3alphaSweep_A3E_partTwo\';
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230506_TandemThursday_4c_separation_3alphaSweep_A3E_diffAlpha\';
 
 %% Take experiment bias measurement
 
@@ -33,15 +33,17 @@ end
 % non-changing parameters
 U = 0.33;
 phi = -90;
-num_cyc = 20;
-transient_cycs = 5;
-fred = 0.12;
+num_cyc = 24;
+transient_cycs = 3;
+fred = 0.11;
 freq = fred*U/foil.chord;
-% freq = 0.65; % very close
+% freq = 1.2; % very close
+
+phase = -180;
 
 % non-dim parameters
-P1star = 70; % pitch amp leading [deg]
-H1star = 0.8; % heave amp leading [chords]
+P1star = 80; % pitch amp leading [deg]
+H1star = 1.2; % heave amp leading [chords]
 P2star = 75; % pitch amp leading [deg]
 H2star = 1.4; % heave amp leading [chords]
 
@@ -58,7 +60,6 @@ const_p2 = 0;
 const_h2 = 0;
 
 aT4 = atan(-2*pi*(heave1/foil.chord)*fred) + deg2rad(pitch1);
-phase = -180;
 
 %% Profile generation
 
@@ -75,6 +76,7 @@ ramp_time = 5; % in [s]
 [~, pprof3] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch2, phase+phi, const_p2);
 [~, pprof4] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave2, phase, const_h2);
 [~, rprof5] = generate_profile(num_cyc-4, freq, experiment.srate, transient_cycs+2, transient_cycs+2, 1, 0, 1); % reference signal
+rprof5(rprof5~=1) = 0;
 
 clear profs
 dumb_delay = 50; % phase difference between pitch wallace and heave wallace (heave lags behind pitch)
@@ -124,7 +126,7 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20230424_TandemMonday_test_4c_00_',...
+FILENAME = (['\20230506_TandemSaturday_4c_test_04_',...
     'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
 
 save(fullfile(FOLDERNAME,FILENAME));

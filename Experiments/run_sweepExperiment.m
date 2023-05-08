@@ -7,11 +7,11 @@ if ~exist('experiment','var') ||  ~exist('bias_unloaded','var') || ~exist('bias_
 end
 
 % Date (don't auto-generate date in case experiment runs overnight)
-date_start = '20230424'; 
+date_start = '20230506'; 
 
 % Save folder location
 % FOLDERNAME = 'D:\Experiments\2foil\20230422_TandemSaturday_3alpha_4c_separation_A3E';
-FOLDERNAME = (['R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\',date_start,'_TandemMonday_4c_separation_3alphaSweep_A3E_partTwo']);
+FOLDERNAME = (['R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\',date_start,'_TandemThursday_4c_separation_3alphaSweep_A3E_diffAlpha']);
 mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
@@ -21,20 +21,22 @@ mkdir(FOLDERNAME);
 % non-changing parameters
 U = 0.33;
 phi = -90;
-num_cyc = 25;
-transient_cycs = 5;
-fred = 0.12;
+num_cyc = 24;
+transient_cycs = 3;
+fred = 0.11;
 freq = fred*U/foil.chord;
 % freq = 0.65; % very close ~0.649
 
 % non-dim parameters
-P1star_vec = [40,50,70];
-H1star = 0.8;
-P2star_vec = [65,75];
+P1star_vec = [50,60,80];
+H1star = 1.2;
+P2star_vec = [70,75];
 % H2star_vec = [0.6,0.8,1.0,1.2,1.4,1.6];
 H2star_vec = [0.6,0.8,1.0,1.2,1.4,1.6,1.8];
 
 phase_vec = [-180,-120,-60,0,60,120];
+
+total_exp = length(P1star_vec)*length(P2star_vec)*length(H2star_vec)*length(phase_vec)
 
 %% Experimental loop
 
@@ -84,7 +86,8 @@ for P1star = P1star_vec
                 [~, pprof3] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch2, phase+phi, 0);
                 [~, pprof4] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave2, phase, 0);
                 [~, rprof5] = generate_profile(num_cyc-4, freq, experiment.srate, transient_cycs+2, transient_cycs+2, 1, 0, 1); % reference signal
-                
+                rprof5(rprof5~=1) = 0;
+
                 clear profs
                 dumb_delay = 50; % phase difference between pitch wallace and heave wallace (heave lags behind pitch)
                 % Assemble output profiles
@@ -149,7 +152,7 @@ for P1star = P1star_vec
                 %% Save data
 
                 motor_warning_flag = 0;
-                FILENAME = (['\',date_start,'_TandemMonday _4c_separation_3alphaSweep_',...
+                FILENAME = (['\',date_start,'_TandemSaturday_4c_separation_3alphaSweep_diffAlpha_',...
                     'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
 
                 save(fullfile(FOLDERNAME,FILENAME));
@@ -170,15 +173,15 @@ for P1star = P1star_vec
                 close all
 
                 if mod(exp_num,15) == 0
-                    message = strjoin(['Finished trial ',num2str(exp_num),'. Experiment is still running. Timestamp: ',string(datetime)]);
+                    message = strjoin(['Finished trial [',num2str(exp_num),'/',num2str(total_exp),']. Experiment is still running. Timestamp: ',string(datetime)]);
                     % NOTE: add a subroutine that generates a 'report card' as a pdf and appends it to the email sent as a quality check.
-                    sendmail('eric_handy-cardenas@brown.edu','Experiment running',message);
+                    sendmail('eric_handy-cardenas@brown.edu','Update, experiment still running',message);
                 end
             end
         end
     end
     message = strjoin(['One aT4 loop has been completed at: ',string(datetime)]);
-    sendmail('eric_handy-cardenas@brown.edu','Experiment running',message);
+    sendmail('eric_handy-cardenas@brown.edu','Large loop done, experiment still running',message);
 end
 
 message = strjoin(['The whole experiment finished at ',string(datetime),'. Come and check it out!']);

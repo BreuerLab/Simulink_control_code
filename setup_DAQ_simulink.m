@@ -64,7 +64,11 @@ end
 
 % Assign aligned pitch bias to unloaded bias variable
 disp('Updating "bias_unloaded" with alignment.')
-bias.pitch(2) = 0.7192+0.2+0.4; % temporary 20230424
+
+% temporary manual adjustment 20230504
+% bias = bias_unloaded;
+bias.pitch(2) = 0.0044+0.4-0.2; 
+bias.pitch(1) = -0.0065-0.5-0.3;
 bias_unloaded = bias;
 clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded
 
