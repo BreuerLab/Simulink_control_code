@@ -1,32 +1,42 @@
-function experiment = setupPrompt(fs)
+function experiment = setupPrompt(fs,foil)
+
+if ~exist('foil','var') || isempty(foil)
+    foil.chord = 0.061;
+    foil.AR    = 6;
+    foil.mass1 = 0.538;
+    foil.mass2 = 0.538;
+    foil.span  = 3*0.061;
+    foil.profile  = 'Rectangular';
+    foil.material = 'Aluminum';
+end
 
 % default answers
 
-experiment.chord = 0.061;
-experiment.thcknss = 0.0238;
-experiment.span = 6*0.061;
-experiment.foil_shape = 'A3E';
+experiment.chord = foil.chord;
+experiment.thcknss = 0.0356;
+experiment.span = foil.span;
+experiment.foil_shape = foil.name;
 experiment.Wall_distance_left = 0.4;
 experiment.Wall_distance_right = 0.4;
 experiment.flume_height = 0.55;
 experiment.flume_hertz = 18;
-experiment.Number_of_foils = 2;
+experiment.Number_of_foils = 1;
 experiment.foil_separation = 6*0.061; 
 experiment.foil_offset = 0;
 experiment.offset_p1 = 0;
 experiment.offset_h1 = 0;
 experiment.offset_p2 = 180;
-experiment.offset_h2 = 0.25;
+experiment.offset_h2 = 0;
 experiment.Temperature = 22.24;
 experiment.pitch_axis = 0.5;
 experiment.piv_var = 0;
 experiment.filt_var = 0;
-experiment.expf_name = 'Enter descriptive name';
+experiment.expf_name = '2023mmdd_EnterDescriptiveName';
 experiment.save_lrs = 'y';
 
 defaultanswers = {num2str(experiment.chord),...
     num2str(experiment.span),...
-    experiment.foil_shape,...
+    char(experiment.foil_shape),...
     num2str(experiment.Wall_distance_left),...
     num2str(experiment.Wall_distance_right),...
     num2str(experiment.flume_height),...

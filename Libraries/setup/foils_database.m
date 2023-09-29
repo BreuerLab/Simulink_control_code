@@ -37,28 +37,31 @@ function foil = foils_database(foiltype, print_properties)
 % -------------------------------------------------------------------------
 
 FoilProperties =...
-      [ " Chord [m]   :";" AspectRatio :";" Mass1 [kg]  :";" Mass2 [kg]  :";" Profile     :";   " Material    :"  ]; % COMMENTS:
-E1 =  [     0.1;              3.5;           0.450;           0.450;         "Elliptical";      "Carbon fiber"    ]; % Built by someone
-A1 =  [     0.1;              3.5;           1.026;           1.174;         "Rectangular";     "Aluminum"        ]; % Nick's foils
-A2 =  [   3*0.0254;           6.0;           0.928;           0.924;         "Rectangular";     "Aluminum"        ]; % Yunxing's foils
-C1 =  [     0.054;            8.28;          0.386;           0.0;           "Cylindrical";     "Carbon fiber"    ]; % Joel's cylinder
-V1 =  [     0.0535;           7.50;          0.306;           0.0;           "VibrissaeBeem50x";"PLA3DprintWepoxy"]; % Joel's vibrissae model
-EC1 = [     0.0594;           6.81;          0.302;           0.0;           "Elliptical";      "PLA3DprintWepoxy"]; % Joel's vibrissae model
-A3E = [     0.061;            6.0;           0.538;           0.538;         "Rectangular";     "Aluminum"        ]; % Eric's main medium foils
-F1E = [   3*0.0254;           6.0;           0.614;           0.0;           "NACA0022";        "Silicone"        ]; % Ian's fishtail foil with shaft extension
+      ["Name:";"Chord [m]:";"AspectRatio:";" Mass1 [kg]:";" Mass2 [kg]:";"    Profile      :"; "Material    :"   ]; % COMMENTS:
+E1 =  [ "E1";     0.1;         3.5;          0.450;         0.450;         "Elliptical";       "Carbon fiber"    ]; % Built by someone
+A1 =  [ "A1";     0.1;         3.5;          1.026;         1.174;         "Rectangular";      "Aluminum"        ]; % Nick's foils
+A2 =  [ "A2";   3*0.0254;      6.0;          0.928;         0.924;         "Rectangular";      "Aluminum"        ]; % Yunxing's foils
+A2E = [ "A2E";  3*0.0254;      6.0;          1.000;         1.000;         "Rectangular";      "Aluminum"        ]; % Yunxing's foils with endplates
+C1 =  [ "C1";     0.054;       8.28;         0.386;         0.0;           "Cylindrical";      "Carbon fiber"    ]; % Joel's cylinder
+V1 =  [ "V1";     0.0535;      7.50;         0.306;         0.0;           "VibrissaeBeem50x"; "PLA3DprintWepoxy"]; % Joel's vibrissae model
+EC1 = [ "EC1";    0.0594;      6.81;         0.302;         0.0;           "Elliptical";       "PLA3DprintWepoxy"]; % Joel's vibrissae model
+A3E = [ "A2E";    0.061;       6.0;          0.538;         0.538;         "Rectangular";      "Aluminum"        ]; % Eric's main medium foils with endplates
+F1E = [ "F1E";  3*0.0254;      6.0;          0.614;         0.0;           "NACA0022";         "Silicone"        ]; % Ian's fishtail foil with shaft extension
+A4E = [ "A4E";    0.1;         3.0;          0.500;         0.0;           "NACA0022";         "Acrylic"         ]; % Yuanhang's transparent airfoil
 
 
-foils = table(FoilProperties, E1, A1, A2, C1, V1, EC1, A3E, F1E); % constructing a table out of the foil data
+foils = table(FoilProperties, E1, A1, A2, A2E, C1, V1, EC1, A3E, F1E, A4E); % constructing a table out of the foil data
 
 selected_data = foils.(foiltype); % identifies the column of the selected foils
 
-foil.chord = str2double(selected_data(1)); % asigns first column's value to the chord variable
-foil.AR    = str2double(selected_data(2)); % asigns second column's value to the aspect ratio var
-foil.mass1 = str2double(selected_data(3)); % asigns third column's value to the leading foil's mass var
-foil.mass2 = str2double(selected_data(4)); % asigns fourth column's value to the trailing foil's mass var
+foil.name = selected_data(1);
+foil.chord = str2double(selected_data(2)); % asigns first column's value to the chord variable
+foil.AR    = str2double(selected_data(3)); % asigns second column's value to the aspect ratio var
+foil.mass1 = str2double(selected_data(4)); % asigns third column's value to the leading foil's mass var
+foil.mass2 = str2double(selected_data(5)); % asigns fourth column's value to the trailing foil's mass var
 foil.span  = foil.chord*foil.AR; % calculates the span
-foil.profile  = selected_data(5); % asigns fifth column's value to the geometric profile of the foils
-foil.material = selected_data(6); % asigns sixth column's value to the geometric profile of the foils
+foil.profile  = selected_data(6); % asigns fifth column's value to the geometric profile of the foils
+foil.material = selected_data(7); % asigns sixth column's value to the geometric profile of the foils
 
 if exist('print_properties','var')
     if strcmp(print_properties,'y')

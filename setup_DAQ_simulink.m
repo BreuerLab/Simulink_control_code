@@ -1,4 +1,6 @@
 %% Setup DAQ - Simulink control
+% Updated 2023/09/24 for Vortex generation using the leading traverse (Gromit)
+% - ehandyca
 
 addpath(genpath('Libraries'))
 setupEmail() % sets up email to send out when experiment is finished
@@ -9,12 +11,13 @@ setupEmail() % sets up email to send out when experiment is finished
 
 srate = 1000;
 T = 1/srate;
+foil_shape = 'A4E';
 
-experiment = setupPrompt(srate);
-foil = foils_database(experiment.foil_shape);
+foil = foils_database(foil_shape);
+experiment = setupPrompt(srate,foil);
 
 % expected time delay between Gromit and Wallace (Gromit leading motion)
-experiment.motion_delay = 13;
+experiment.motion_delay = 0;%13; % 20230924
 disp(['NOTE: Expected time delay between Gromit and Wallace motions (Gromit leading the motion) is set to ',num2str(experiment.motion_delay),' ms']);
 
 clearvars -except experiment foil srate T
@@ -33,9 +36,12 @@ run("find_bias_simulink.m")
 
 clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
 
-%% Find zero pitch
+%% Find zero pitch (aligns at center of flume)
 
-align_ans = input(['Run "find_zero_pitch" for Gromit? y/n + Enter',newline],"s");
+% align_ans = input(['Run "find_zero_pitch" for Gromit? y/n + Enter',newline],"s");
+align_ans = 'n';
+disp('Pitch alignment will be skipped for Old traverse (Parker-AeroTech).');
+
 if strcmp(align_ans,'y')
     % align gromit
     traverse = 'g';
@@ -52,11 +58,12 @@ if strcmp(align_ans,'y')
     clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
 end
 
-align_ans = input(['Run "find_zero_pitch" for Wallace? y/n + Enter',newline],"s");
+% Only align the new traverse - edit 20230924
+align_ans = input(['Run "find_zero_pitch" for Bell-Everman? y/n + Enter',newline],"s");
 if strcmp(align_ans,'y')
-    % align wallace
+    % align Bell-Everman
     traverse = 'w';
-    disp('Ensure flume is at speed and Wallace is ON Press any key to continue')
+    disp('Ensure flume is at speed and Bell-Everman is ON. Press any key to continue')
     pause
     
     run("find_zero_pitch_simulink.m")
@@ -65,10 +72,16 @@ end
 % Assign aligned pitch bias to unloaded bias variable
 disp('Updating "bias_unloaded" with alignment.')
 
-% temporary manual adjustment 20230504
-% bias = bias_unloaded;
-bias.pitch(2) = 0.0044+0.4-0.2; 
-bias.pitch(1) = -0.0065-0.5-0.3;
+
+% temporary pitch bias overwrite - edit 20230504
+overwrite = 'no';
+if strcmp(overwrite,'yes')
+    % these are manually input values
+    bias = bias_unloaded;
+    bias.pitch(2) = 0.0044+0.4-0.2; 
+    bias.pitch(1) = -0.0065-0.5-0.3;
+end
+
 bias_unloaded = bias;
 clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded
 
@@ -92,6 +105,4 @@ clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw
 
 disp('Done initializing experimental setup.')
 
-% b = timeseries(1);
-% set_param('test_model','SimulationCommand','start');
 

@@ -10,13 +10,13 @@ end
 % mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
-FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230506_TandemThursday_4c_separation_3alphaSweep_A3E_diffAlpha\';
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230924_VortexSunday_testing_motion_profiles_01\';
 
 %% Take experiment bias measurement
 
-use_bias_measurement = 1;
+use_bias_measurement = 'yes';
 
-if use_bias_measurement == 1
+if strcmp(use_bias_measurement,'yes')
     bias = bias_loaded; % use bias_loaded as the bias to update the pitch and heave biases in the "fin_bias_simulink" routine
     run("find_bias_simulink.m"); % find another loaded bias that contains the drifting and the load bias
     bias_newloaded = bias; % establish new loaded bias
@@ -31,21 +31,21 @@ end
 %% Experiment loop
 
 % non-changing parameters
-U = 0.33;
+U = 0.3;
 phi = -90;
-num_cyc = 24;
+num_cyc = 10;
 transient_cycs = 3;
-fred = 0.11;
+fred = 0.09;
 freq = fred*U/foil.chord;
 % freq = 1.2; % very close
 
 phase = -180;
 
 % non-dim parameters
-P1star = 80; % pitch amp leading [deg]
-H1star = 1.2; % heave amp leading [chords]
-P2star = 75; % pitch amp leading [deg]
-H2star = 1.4; % heave amp leading [chords]
+P1star = 0; % pitch amp leading [deg]
+H1star = 0; % heave amp leading [chords]
+P2star = 80; % pitch amp leading [deg]
+H2star = 2.5; % heave amp leading [chords]
 
 % dimensional parameters
 pitch1 = P1star;
@@ -59,7 +59,7 @@ const_h1 = 0;
 const_p2 = 0;
 const_h2 = 0;
 
-aT4 = atan(-2*pi*(heave1/foil.chord)*fred) + deg2rad(pitch1);
+aT4 = atan(-2*pi*(heave2/foil.chord)*fred) + deg2rad(pitch2);
 
 %% Profile generation
 
@@ -70,6 +70,67 @@ ramp_time = 5; % in [s]
 [~, ramp_p1, ramp_h1] = ramp_fn(ramp_time, experiment.T, bias_trial, experiment.offset_home, 'g');
 [~, ramp_p2, ramp_h2] = ramp_fn(ramp_time, experiment.T, bias_trial, experiment.offset_home, 'w');
 
+% Vortex generation -------------------------------------------------------
+
+% Generate motion profile
+dt = 1/experiment.srate; % duration of each time step
+
+% up stroke
+up_period = 1/freq; % cycle period
+num_tsteps = round(up_period/(2*dt)); % number of time steps per half a cycle
+time_vec_up = (0:num_tsteps)*dt;
+
+pitch_up = -(pitch2/2)*sin(2*pi*(2*freq)*time_vec_up - pi/2) - pitch2/2;
+heave_up = (heave2/2)*sin(2*pi*freq*time_vec_up - pi/2) + heave2/2;
+
+% down stroke
+pitch_dwn_amp = 30;
+freq_dwn = 0.1;
+dwn_period = 1/freq_dwn; % cycle period
+num_tsteps = round(dwn_period/(2*dt)); % number of time steps per half a cycle
+time_vec_dwn = (0:num_tsteps)*dt;
+
+pitch_down = (pitch_dwn_amp/2)*sin(2*pi*(2*freq_dwn)*time_vec_dwn - pi/2) + pitch_dwn_amp/2;
+heave_down = -(heave2/2)*sin(2*pi*freq_dwn*time_vec_dwn - pi/2) + heave2/2;
+
+% full stroke
+time_vec_stdby = (0:dt:2);
+time_vec = [time_vec_stdby, time_vec_up+time_vec_stdby(end), time_vec_dwn+time_vec_stdby(end)+time_vec_up(end), time_vec_stdby+time_vec_dwn(end)+time_vec_stdby(end)+time_vec_up(end)];
+pitch_motion = [zeros(size(time_vec_stdby)), pitch_up, pitch_down, zeros(size(time_vec_stdby))];
+heave_motion = [zeros(size(time_vec_stdby)), heave_up, heave_down, zeros(size(time_vec_stdby))];
+
+% plotting result
+body = [-foil.chord/2,foil.chord/2; 0,0];
+
+for frame = 1:20:length(time_vec)
+    % rotate body
+    theta = deg2rad(pitch_motion(frame));
+    rotation = [cos(theta), -sin(theta); sin(theta), cos(theta)];
+    body_rot = rotation*body;
+    body_rot(2,:) = body_rot(2,:) + heave_motion(frame);
+
+    figure(1)
+    
+    subplot(1,4,1:3)
+    yyaxis left
+    plot(time_vec, heave_motion); hold on;
+    plot(time_vec(frame), heave_motion(frame), '.', 'markersize', 40); hold off;
+    ylim([-0.01,heave2+0.01])
+    yyaxis right
+    plot(time_vec, pitch_motion); hold on;
+    plot(time_vec(frame), pitch_motion(frame), '.', 'markersize', 40); hold off;
+    ylim([-80,40])
+
+    subplot(1,4,4)
+    plot(body_rot(1,:),body_rot(2,:),'linestyle','-','linewidth',6,'color','k')
+    axis equal
+    ylim([-0.01,heave2+0.01])
+    xlim([-foil.chord*(2/3),foil.chord*(2/3)])
+%     pause(0.1)
+end
+
+
+% OSCILLATING MOTION ------------------------------------------------------
 % Generate experiment profiles
 [~, pprof1] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, pitch1, phi, const_p1);
 [~, pprof2] = generate_profile(num_cyc, freq, experiment.srate, transient_cycs, transient_cycs, heave1, 0, const_h1);
@@ -86,6 +147,19 @@ profs(:,2) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); ramp_h1; pp
 profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pprof3+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
 profs(:,4) = [ramp_h2; pprof4+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
 profs(:,5) = [zeros(dumb_delay,1); zeros(experiment.motion_delay,1); zeros(size(ramp_p1)); rprof5; zeros(size(ramp_p1))]; % reference signal
+
+% -------------------------------------------------------------------------
+% VORTEX GENERATION -------------------------------------------------------
+clear profs
+
+% motion profiles new-traverse:
+profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pitch_motion'+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
+profs(:,4) = [ramp_h2; heave_motion'+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
+profs(:,5) = [zeros(dumb_delay,1); zeros(size(ramp_p2)); ones(size(pitch_motion')); zeros(size(ramp_p2)); zeros(experiment.motion_delay,1)];
+
+% unused channels (old traverse motion)
+profs(:,1) = [zeros(size(profs(:,3)))];
+profs(:,2) = [zeros(size(profs(:,4)))];
 
 % plot trajectories
 plot_profiles(profs);
@@ -126,8 +200,8 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20230506_TandemSaturday_4c_test_04_',...
-    'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_ph=',num2str(phase),'deg.mat']);
+FILENAME = (['\20230923_VortexSunday_test_00_withFoil_withFlow_',...
+    'aT4=',num2str(aT4,3),'_p2=',num2str(pitch2,2),'deg_h2=',num2str(heave2/foil.chord,3),'c_fred=',num2str(fred,3),'.mat']);
 
 save(fullfile(FOLDERNAME,FILENAME));
 

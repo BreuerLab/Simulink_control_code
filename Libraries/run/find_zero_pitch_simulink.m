@@ -4,7 +4,15 @@
 
 stndby = 20;
 
-offset_home = experiment.offset_home;
+%% Offset distance
+
+% Reposition at center of flume:
+offset_home = [0, 0, 180, 0.25];
+
+% Reposition at pre-defined offset:
+% offset_home = experiment.offset_home;
+
+%% Traverse selection
 
 switch traverse
     case 'g' % leading traverse (Gromit)
@@ -38,8 +46,11 @@ while repeat_alignment == 1
     while expand_search < 2
         expand_search = expand_search + 1;
 
+        temp = experiment.offset_home;
+        experiment.offset_home = offset_home; % this forces the foil to always align at the flume centerline
         [toime, outp1, outh1, outp2, outh2, sync_sig] = alingment_profile(experiment, traverse, scan_time, search_amplitude, bias);
-    
+        experiment.offset_home = temp;
+
         % simulation time
         sim_time = ceil(toime(end))+2;
         disp(['Expected simulation time: ', num2str(sim_time), ' seconds']);
@@ -76,7 +87,7 @@ while repeat_alignment == 1
         %% Extract relevant forces for analysis
     
         % inices of non-zero elements
-        k = find(ref_signal == 1);
+        k = find(abs(ref_signal - 1)<=0.01);
         
         range_pos = k(1):k(2); % range of positive angle sweep
         range_neg = k(3):k(4); % range of negative angle sweep
