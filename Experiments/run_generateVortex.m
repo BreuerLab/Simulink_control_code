@@ -11,11 +11,11 @@ end
 % mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
-FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20230928_VortexThursday_PIV\';
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20231009_VortexMonday_motionTesting_pt2\';
 
 %% Take experiment bias measurement
 
-use_bias_measurement = 'no';
+use_bias_measurement = 'yes';
 
 if strcmp(use_bias_measurement,'yes')
     bias = bias_loaded; % use bias_loaded as the bias to update the pitch and heave biases in the "fin_bias_simulink" routine
@@ -33,19 +33,19 @@ end
 
 % non-changing parameters
 U = 0.2; % [m/s] freestream velocity
-stdby_time = 5; % [seconds] standby time before and after motion
+stdby_time = 2; % [seconds] standby time before and after motion
 phi = -90; % [deg] phase lag between heave and pitch (pitch leads the motion)
 
 % up motion kinematics
-fred_up = 0.13;
+fred_up = 0.12;
 freq_up = fred_up*U/foil.chord;
 
 % for use of the simulink control
 freq = 0;
 heave1 = 0;
 
-pitch_up_amp = 75; % [deg] pitch amplitude in up-stroke
-hstar_up_amp = 2; % [chords] heave amplitude in up-stroke
+pitch_up_amp = 0; % [deg] pitch amplitude in up-stroke
+hstar_up_amp = 2.5; % [chords] heave amplitude in up-stroke
 heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
 
 % up-stroke aT4
@@ -63,7 +63,16 @@ ramp_time = 5; % in [s]
 % Generate motion profile
 dt = 1/experiment.srate; % duration of each time step
 
-[time_vec, pitch_fn, heave_fn] = generate_vortex_profile(experiment.srate, foil, stdby_time, U, fred_up, pitch_up_amp, heave_up_amp);
+% MODIFY HERE !!
+fred_up = 0.12;
+hstar_up_amp = 2.5; % [chords] heave amplitude in up-stroke
+heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
+AoAmax = 0.3;
+exp_label = 23;
+
+[time_vec, heave_fn, pitch_fn] = generate_vortex_profile(foil, heave_up_amp, AoAmax, U, fred_up, experiment.srate);
+
+disp(['Approximate max velocity: ',num2str(heave_up_amp*2*pi*freq_up),' m/s']);
 
 % plotting
 figure(1)
@@ -78,10 +87,10 @@ pitch_motion = pitch_fn;
 heave_motion = heave_fn;
 
 % plotting result
-plot_motion = 'yes';
+plot_motion = 'no';
 if strcmp(plot_motion,'yes')
     body = [-foil.chord/2,foil.chord/2; 0,0];
-    
+
     for frame = 1:40:length(time_vec)
         % rotate body
         theta = deg2rad(pitch_motion(frame));
@@ -127,9 +136,9 @@ clear profs
 dumb_delay = 50; % phase difference between pitch BE and heave BE (heave lags behind pitch)
 
 % motion profiles new-traverse:
-profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pitch_motion'+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
-profs(:,4) = [ramp_h2; heave_motion'+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
-profs(:,5) = [zeros(dumb_delay,1); zeros(size(ramp_p2)); ones(size(pitch_motion')); zeros(size(ramp_p2)); zeros(experiment.motion_delay,1)];
+profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pitch_motion+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
+profs(:,4) = [ramp_h2; heave_motion+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
+profs(:,5) = [zeros(dumb_delay,1); zeros(size(ramp_p2)); ones(size(pitch_motion)); zeros(size(ramp_p2)); zeros(experiment.motion_delay,1)];
 
 % unused channels (old traverse motion)
 profs(:,1) = [zeros(size(profs(:,3)))];
@@ -175,8 +184,8 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20230928_VortexThursday_02_withFoil_withFlow_',...
-    'U=',num2str(U,3),'_aT4=',num2str(aT4,3),'_p2=',num2str(pitch_up_amp,2),'deg_h2=',num2str(heave_up_amp/foil.chord,3),'c_fred=',num2str(fred_up,3),'.mat']);
+FILENAME = (['\20231009_VortexMonday_',num2str(exp_label),'_withFoil_withFlow_',...
+    'U=',num2str(U,3),'_aT4=',num2str(AoAmax,3),'_p2=',num2str(max(pitch_fn),2),'deg_h2=',num2str(heave_up_amp/foil.chord,3),'c_fred=',num2str(fred_up,3),'.mat']);
 
 clear fig1
 
