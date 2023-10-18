@@ -33,23 +33,26 @@ end
 
 % non-changing parameters
 U = 0.2; % [m/s] freestream velocity
-stdby_time = 2; % [seconds] standby time before and after motion
+stdby_time = 3; % [seconds] standby time before and after motion
 phi = -90; % [deg] phase lag between heave and pitch (pitch leads the motion)
 
-% up motion kinematics
-fred_up = 0.12;
-freq_up = fred_up*U/foil.chord;
+% noly for use of the simulink control
+freq = 0; % unused
+heave1 = 0; % unused
 
-% for use of the simulink control
-freq = 0;
-heave1 = 0;
+% MODIFY STROKE PARAMETERS HERE !! ----------------------------------------
 
-pitch_up_amp = 0; % [deg] pitch amplitude in up-stroke
-hstar_up_amp = 2.5; % [chords] heave amplitude in up-stroke
+fred_up = 0.12; % reduced frequency upstroke
+freq_up = fred_up*U/foil.chord; % real frequency upstroke
+
+hstar_up_amp = 2.5; % [chords] heave amplitude in upstroke
 heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
 
-% up-stroke aT4
-aT4 = atan(-2*pi*(heave_up_amp/foil.chord)*fred_up) + deg2rad(pitch_up_amp);
+% Maximum angle of attack desired in upstroke
+AoAmax = 0.3;
+exp_label = 0; % temporary: experiment number
+
+% VORTEX GENERATION -------------------------------------------------------
 
 % ramp to offset time
 ramp_time = 5; % in [s]
@@ -58,19 +61,11 @@ ramp_time = 5; % in [s]
 [~, ramp_p1, ramp_h1] = ramp_fn(ramp_time, experiment.T, bias_trial, experiment.offset_home, 'g');
 [~, ramp_p2, ramp_h2] = ramp_fn(ramp_time, experiment.T, bias_trial, experiment.offset_home, 'w');
 
-% VORTEX GENERATION -------------------------------------------------------
-
 % Generate motion profile
 dt = 1/experiment.srate; % duration of each time step
 
-% MODIFY HERE !!
-fred_up = 0.12;
-hstar_up_amp = 2.5; % [chords] heave amplitude in up-stroke
-heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
-AoAmax = 0.3;
-exp_label = 23;
-
-[time_vec, heave_fn, pitch_fn] = generate_vortex_profile(foil, heave_up_amp, AoAmax, U, fred_up, experiment.srate);
+profType = 'sinusoidal';
+[time_vec, heave_fn, pitch_fn, AoAmax_calc] = generate_vortex_profile(foil, heave_up_amp, AoAmax, U, fred_up, experiment.srate, profType);
 
 disp(['Approximate max velocity: ',num2str(heave_up_amp*2*pi*freq_up),' m/s']);
 
@@ -133,14 +128,14 @@ end
 % Motion definition -------------------------------------------------------
 
 clear profs
-dumb_delay = 50; % phase difference between pitch BE and heave BE (heave lags behind pitch)
+dumb_delay = 50; % phase difference between pitch Bell-E and heave Bell-E (heave lags behind pitch)
 
 % motion profiles new-traverse:
 profs(:,3) = [zeros(dumb_delay,1); ramp_p2; pitch_motion+experiment.offset_home(3)+bias_trial.pitch(2); flip(ramp_p2); zeros(experiment.motion_delay,1)];
 profs(:,4) = [ramp_h2; heave_motion+experiment.offset_home(4)+bias_trial.heave(2); flip(ramp_h2); zeros(experiment.motion_delay,1); zeros(dumb_delay,1)];
 profs(:,5) = [zeros(dumb_delay,1); zeros(size(ramp_p2)); ones(size(pitch_motion)); zeros(size(ramp_p2)); zeros(experiment.motion_delay,1)];
 
-% unused channels (old traverse motion)
+% unused channels (Parker-Aerotech motion)
 profs(:,1) = [zeros(size(profs(:,3)))];
 profs(:,2) = [zeros(size(profs(:,4)))];
 
