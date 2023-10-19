@@ -12,7 +12,7 @@
 % fred = 0.12;
 % srate = 1000;
 % heave_amp = 2*foil.chord;
-% AoAmax = 0.3;
+% AoAmax = 0.5;
 % 
 % [tprof, hprof, pprof] = generate_vortex_profile1(foil, heave_amp, AoAmax, U, fred, srate, 'sinusoidal');
 % 
@@ -22,7 +22,7 @@
 % [foil_x, foil_y] = naca00xxairfoil(0012, foil.chord, 101, 'cos');
 % body = [(foil_x-foil.chord/4)'; foil_y'];
 % 
-% step = 50;
+% step = 60;
 % for frame = 1:step:length(tprof)
 %     % rotate body
 %     theta = deg2rad(pprof(frame));
