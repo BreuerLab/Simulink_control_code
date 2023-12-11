@@ -11,7 +11,7 @@ end
 % mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
-FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20231009_VortexMonday_motionTesting_pt2\';
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20231019_VortexThursday_vortex_charaterization\';
 
 %% Take experiment bias measurement
 
@@ -36,7 +36,7 @@ U = 0.2; % [m/s] freestream velocity
 stdby_time = 3; % [seconds] standby time before and after motion
 phi = -90; % [deg] phase lag between heave and pitch (pitch leads the motion)
 
-% noly for use of the simulink control
+% only for use of the simulink control
 freq = 0; % unused
 heave1 = 0; % unused
 
@@ -49,7 +49,7 @@ hstar_up_amp = 2.5; % [chords] heave amplitude in upstroke
 heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
 
 % Maximum angle of attack desired in upstroke
-AoAmax = 0.3;
+AoAmax = -0.5;
 exp_label = 0; % temporary: experiment number
 
 % VORTEX GENERATION -------------------------------------------------------
@@ -179,8 +179,8 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20231009_VortexMonday_',num2str(exp_label),'_withFoil_withFlow_',...
-    'U=',num2str(U,3),'_aT4=',num2str(AoAmax,3),'_p2=',num2str(max(pitch_fn),2),'deg_h2=',num2str(heave_up_amp/foil.chord,3),'c_fred=',num2str(fred_up,3),'.mat']);
+FILENAME = (['\20231019_VortexThursday_',num2str(exp_label),'_withFoil_withFlow_',...
+    'U=',num2str(U,3),'_AoAmax=',num2str(AoAmax,3),'_p2=',num2str(max(pitch_fn),2),'deg_h2=',num2str(heave_up_amp/foil.chord,3),'c_fred=',num2str(fred_up,3),'.mat']);
 
 clear fig1
 

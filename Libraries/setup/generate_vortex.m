@@ -2,70 +2,7 @@
 % % 2023/10/09 - ehandy
 % % 2023/10/18 - ehandy, last update
 %
-% %% TESTING
-% 
-% addpath(genpath('Libraries'))
-% 
-% foil.chord = 0.1;
-% 
-% U = 0.2;
-% fred = 0.12;
-% srate = 1000;
-% heave_amp = 2*foil.chord;
-% AoAmax = 0.5;
-% 
-% [tprof, hprof, pprof] = generate_vortex_profile1(foil, heave_amp, AoAmax, U, fred, srate, 'sinusoidal');
-% 
-% % Plot resulting motion
-% 
-% % body = [-foil.chord/2,foil.chord/2; 0,0];
-% [foil_x, foil_y] = naca00xxairfoil(0012, foil.chord, 101, 'cos');
-% body = [(foil_x-foil.chord/4)'; foil_y'];
-% 
-% step = 60;
-% for frame = 1:step:length(tprof)
-%     % rotate body
-%     theta = deg2rad(pprof(frame));
-%     rotation = [cos(theta), -sin(theta); sin(theta), cos(theta)];
-%     body_rot = rotation*body;
-%     body_rot(2,:) = body_rot(2,:) + hprof(frame);
-%     foilbody = polyshape(body_rot');
-% 
-%     fig1 = figure(1);
-% %     set(fig1,'units','normalized','position',[0.1,0.1,0.7,0.8])
-% 
-%     subplot(1,4,1:3)
-%     yyaxis left
-%     plot(tprof, hprof); hold on;
-%     plot(tprof(frame), hprof(frame), '.', 'markersize', 40); hold off;
-%     ylim([-0.1,0.7])
-%     ylabel('$h(t)$ (m)','interpreter','latex')
-%     yyaxis right
-%     plot(tprof, pprof); hold on;
-%     plot(tprof(frame), pprof(frame), '.', 'markersize', 40); hold off;
-%     ylim([-80,80])
-%     ylabel('$\theta(t)$ ($^\circ$)','interpreter','latex')
-%     xlabel('$t$ (s)','interpreter','latex')
-%     set(gca,'fontsize',14);
-%     grid on;
-% 
-%     subplot(1,4,4)
-%     % plot(body_rot(1,:),body_rot(2,:),'linestyle','-','linewidth',2,'color','k')
-%     plot(foilbody);
-%     axis equal
-%     ylim([-0.1,0.7])
-%     xlim([-0.75*foil.chord,1.5*foil.chord])
-%     set(gca,'xtick',[],'ytick',[],'box','on')
-% 
-% %         figname = ['frame_T=6.5_',num2str(frame),'.png'];
-% %         save_folder = 'C:\Users\ehandyca\Documents\MAT Local quick access figures\20230927_singleVortexMotion\aT4_negative';
-% %         export_fig(fullfile(save_folder,figname));
-% %         close(fig1)
-% 
-% end
-
-
-%% Generate Vortex Profile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Generate Vortex Motion Profile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Generates the pitching and heaving motion trajectory for a foil to
 % generate a single vortex. The upstroke generates a vortex while the
@@ -75,7 +12,7 @@
 % -------------------------------------------------------------------------
 % Example:
 %
-% [tprof, hprof, pprof, alpha_max] = generate_vortex_profile(0.1, 0.2, 0.4, 0.2, 0.12, 1000, 'sinusoidal')
+% [tprof, hprof, pprof, alpha_max] = generate_vortex(0.1, 0.2, 0.4, 0.2, 0.12, 1000, 'sinusoidal')
 %
 % -------------------------------------------------------------------------
 % Inputs: 
@@ -114,7 +51,7 @@
 %
 % -------------------------------------------------------------------------
 
-function [tprof, hprof, pprof, alpha_max] = generate_vortex_profile(chord, heave_amp, AoAmax, U, fred, srate, profType)
+function [tprof, hprof, pprof, alpha_max] = generate_vortex(chord, heave_amp, AoAmax, U, fred, srate, profType)
 
 %% Check arguments
 if ~strcmp(profType,'eldredge') && ~strcmp(profType,'sinusoidal')
