@@ -1,108 +1,90 @@
 %% Setup DAQ - Simulink control
-% Updated 2023/09/24 for Vortex generation using the leading traverse (Gromit)
-% - ehandyca
-
-addpath(genpath('Libraries'))
-setupEmail() % sets up email to send out when experiment is finished
-
-% cd('R:\ENG_Breuer_Shared\ehandyca\handy_simulink_control_code');
-
+% Run this code before running the experiment in order to:
+% -Define user parameters
+% -Take tare measurement for force sensors
+% -Find zero y-Force angles, aka find zero pitch
+% -Take loaded tare measurement (with steady flow on object)
 %% General setup
+setup_email() % sets up email to send out when experiment is finished
+Parameters = setup_prompt(); % prompts user to input parameter values for the experiment
 
-srate = 1000;
-T = 1/srate;
-foil_shape = 'A4E';
-
-foil = foils_database(foil_shape);
-experiment = setupPrompt(srate,foil);
-
-% expected time delay between Gromit and Wallace (Gromit leading motion)
-experiment.motion_delay = 0;%13; % 20230924
-disp(['NOTE: Expected time delay between Gromit and Wallace motions (Gromit leading the motion) is set to ',num2str(experiment.motion_delay),' ms']);
-
-clearvars -except experiment foil srate T
+%% Move motors to starting position
+disp(['The traverses will be moved to their starting positions.',newline, ...
+    'Make sure MOTORS ARE ON with CLEARANCE to move, then press any key to continue.'])
+pause()
+% Run the move to center of the flume
+[startPitchDegG, MotorPositions.endPitchDegG] = deal(0,Parameters.pitchOffsetDegG); %#ok<ASGLU> 
+[startHeaveMetersG, MotorPositions.endHeaveMetersG] = deal(0,Parameters.heaveOffsetMetersG); %#ok<ASGLU> 
+[startPitchDegW, MotorPositions.endPitchDegW] = deal(0,Parameters.pitchOffsetDegW); %#ok<ASGLU> 
+[startHeaveMetersW, MotorPositions.endHeaveMetersW] = deal(0,Parameters.heaveOffsetMetersW); %#ok<ASGLU> 
+run('move_to_position') % This is not done with a function call so that the Simulink model can access workspace variables
+clearvars -except Parameters MotorPositions
 
 %% Unloaded bias measurement
-
-% check for required parameters:
-if ~exist('experiment','var')
-    error('Missing necessary variables from workspace')
-end
-
-disp(['Finding unloaded bias. Ensure flume is OFF and motors are ON.',newline,'Press any key to continue.'])
+disp(['Finding UNLOADED BIAS. Ensure flume is OFF.',newline,'Press any key to continue.'])
 pause()
 
-run("find_bias_simulink.m")
+% Run find_bias_simulink.m script, then clear temporary variables from the workspace
+run('find_bias_simulink') % This is not done with a function call so that the Simulink model can access workspace variables
+clearvars -except Parameters Biases MotorPositions
 
-clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
-
-%% Find zero pitch (aligns at center of flume)
-
-% align_ans = input(['Run "find_zero_pitch" for Gromit? y/n + Enter',newline],"s");
-align_ans = 'n';
-disp('Pitch alignment will be skipped for Old traverse (Parker-AeroTech).');
-
-if strcmp(align_ans,'y')
-    % align gromit
-    traverse = 'g';
-    disp('Ensure flume is at speed and Gromit is ON. Press any key to continue')
+%% Find zero pitch
+answer = input(['Run "find_zero_pitch" for Gromit? y/n + Enter', newline],"s");
+switch answer
+    case 'y'
+    traverse = 'Gromit';
+    disp('Turn FLUME ON. Then press any key to continue')
     pause
+% Run find_zero_pitch_simulink.m script, then clear temporary variables from the workspace
+    run('find_zero_pitch_simulink') % This is not done with a function call so that the Simulink model can access workspace variables
+    clearvars -except Parameters Biases MotorPositions
 
-    % check for required parameters:
-    if ~exist('experiment','var') || ~exist('bias','var') || ~exist('traverse','var')
-        error('Missing necessary variables from workspace. Vars "experiment", "bias", and "traverse" must be available.')
-    end
-    
-    run("find_zero_pitch_simulink.m")
-    
-    clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias
 end
 
-% Only align the new traverse - edit 20230924
-align_ans = input(['Run "find_zero_pitch" for Bell-Everman? y/n + Enter',newline],"s");
-if strcmp(align_ans,'y')
-    % align Bell-Everman
-    traverse = 'w';
-    disp('Ensure flume is at speed and Bell-Everman is ON. Press any key to continue')
+answer = input(['Run "find_zero_pitch" for Wallace?? y/n + Enter', newline],"s");
+switch answer
+    case 'y'
+    traverse = 'Wallace';
+    disp('Ensure FLUME is ON. Then press any key to continue')
     pause
+    % Run find_zero_pitch_simulink.m script, then clear temporary variables from the workspace
+    run('find_zero_pitch_simulink') % This is not done with a function call so that the Simulink model can access workspace variables
+    clearvars -except Parameters Biases MotorPositions
+end
+    clearvars -except Parameters Biases MotorPositions
     
-    run("find_zero_pitch_simulink.m")
-end
-
-% Assign aligned pitch bias to unloaded bias variable
-disp('Updating "bias_unloaded" with alignment.')
-
-
-% temporary pitch bias overwrite - edit 20230504
-overwrite = 'no';
-if strcmp(overwrite,'yes')
-    % these are manually input values
-    bias = bias_unloaded;
-    bias.pitch(2) = 0.0044+0.4-0.2; 
-    bias.pitch(1) = -0.0065-0.5-0.3;
-end
-
-bias_unloaded = bias;
-clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded
+%% Move to new start positions based on find zero pitch
+disp('The traverses will be moved to their zero-pitch positions.')
+% Run the move to center of the flume
+[startPitchDegG, MotorPositions.endPitchDegG] = deal(MotorPositions.endPitchDegG,Parameters.pitchOffsetDegG); %#ok<ASGLU> 
+[startHeaveMetersG, MotorPositions.endHeaveMetersG] = deal(MotorPositions.endHeaveMetersG,MotorPositions.endHeaveMetersG); %#ok<ASGLU> 
+[startPitchDegW, MotorPositions.endPitchDegW] = deal(MotorPositions.endPitchDegW,Parameters.pitchOffsetDegW); %#ok<ASGLU> 
+[startHeaveMetersW, MotorPositions.endHeaveMetersW] = deal(MotorPositions.endHeaveMetersW,MotorPositions.endHeaveMetersW); %#ok<ASGLU> 
+run('move_to_position') % This is not done with a function call so that the Simulink model can access workspace variables
+clearvars -except Parameters MotorPositions
+%% Redo the bias measurement at the new start positions
+disp(['Repeating UNLOADED BIAS. Turn FLUME OFF.',newline,'Press any key to continue.'])
+pause()
+% Run find_bias_simulink.m script, then clear temporary variables from the workspace
+run('find_bias_simulink') % This is not done with a function call so that the Simulink model can access workspace variables
+clearvars -except Parameters Biases MotorPositions
 
 %% Loaded bias measurement
+disp(['Finding LOADED BIAS. Turn FLUME ON.',newline,'Press any key to continue.'])
+pause()
+% Run find_bias_simulink.m script, then clear temporary variables from the workspace
+run('find_bias_simulink') % This is not done with a function call so that the Simulink model can access workspace variables
+clearvars -except Parameters Biases MotorPositions
 
-% check for required parameters:
-if ~exist('experiment','var') || ~exist('bias_unloaded','var') || ~exist('bias','var')
-    % in this case, bias and bias_unloaded are the same, but "find_bias" uses the variable "bias" to run
-    error('Missing necessary variables from workspace. Vars "experiment", "bias", and "bias_unloaded" must be available.')
-end
-
-disp(['Finding loaded bias. Ensure flume is ON and motors are ON. Bring flowspeed up to experiment value.',newline,'Press any key to continue.'])
-pause
-run("find_bias_simulink.m")
-
-% Assign bias to loaded bias variable
-bias_loaded = bias;
-clearvars -except experiment foil srate T out raw_encoders raw_force_wallace raw_force_gromit bias bias_unloaded bias_loaded
+%% Move motors to home position
+disp('The traverses will move to their home positions.')
+% Run the move to start positions
+[startPitchDegG, MotorPositions.endPitchDegG] = deal(MotorPositions.endPitchDegG,0); 
+[startHeaveMetersG, MotorPositions.endHeaveMetersG] = deal(MotorPositions.endHeaveMetersG,0);
+[startPitchDegW, MotorPositions.endPitchDegW] = deal(MotorPositions.endPitchDegW,0); 
+[startHeaveMetersW, MotorPositions.endHeaveMetersW] = deal(MotorPositions.endHeaveMetersW,0);
+run('move_to_position')
+clearvars -except Parameters Biases MotorPositions
 
 %% Ready
-
-disp('Done initializing experimental setup.')
-
-
+disp('Done with experiment setup!')
