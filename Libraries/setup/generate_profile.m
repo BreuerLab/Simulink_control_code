@@ -1,4 +1,6 @@
 function [Time, Waveform] = generate_profile(N_cycles, Frequency, Sampling_Frequency, N_cycles_up, N_cycles_down, Amplitude, Phase_shift, constantamplitude)
+% NOTE: for sinusoidal profiles
+
 % Function to generate a waveform of a given amplitude, with a given frequency [Hz], sampling
 % frequency [Hz], number of cycles to ramp up and down, Phase shift [deg]
 

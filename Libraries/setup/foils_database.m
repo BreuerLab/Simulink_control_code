@@ -46,11 +46,12 @@ C1 =  [ "C1";     0.054;       8.28;         0.386;         0.0;           "Cyli
 V1 =  [ "V1";     0.0535;      7.50;         0.306;         0.0;           "VibrissaeBeem50x"; "PLA3DprintWepoxy"]; % Joel's vibrissae model
 EC1 = [ "EC1";    0.0594;      6.81;         0.302;         0.0;           "Elliptical";       "PLA3DprintWepoxy"]; % Joel's vibrissae model
 A3E = [ "A2E";    0.061;       6.0;          0.538;         0.538;         "Rectangular";      "Aluminum"        ]; % Eric's main medium foils with endplates
-F1E = [ "F1E";  3*0.0254;      6.0;          0.614;         0.0;           "NACA0022";         "Silicone"        ]; % Ian's fishtail foil with shaft extension
-A4E = [ "A4E";    0.1;         3.0;          0.500;         0.0;           "NACA0022";         "Acrylic"         ]; % Yuanhang's transparent airfoil
+F1E = [ "F1E";  3*0.0254;      6.0;          0.614;         0.0;           "NACA0012";         "Silicone"        ]; % Ian's fishtail foil with shaft extension
+A4E = [ "A4E";    0.1;         3.0;          0.500;         0.0;           "NACA0012";         "Acrylic"         ]; % Yuanhang's transparent airfoil
+A5  = [ "A4E";    0.12;        6.0;          0.700;         0.0;           "NACA0012";         "PLA3DprintWepoxy"]; % Joel's NACA0012 foil
 
 
-foils = table(FoilProperties, E1, A1, A2, A2E, C1, V1, EC1, A3E, F1E, A4E); % constructing a table out of the foil data
+foils = table(FoilProperties, E1, A1, A2, A2E, C1, V1, EC1, A3E, F1E, A4E, A5); % constructing a table out of the foil data
 
 selected_data = foils.(foiltype); % identifies the column of the selected foils
 

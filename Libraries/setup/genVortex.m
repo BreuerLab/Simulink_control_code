@@ -1,3 +1,6 @@
+% %% Create motion profile to generate a vortex with an oscilating foil
+%
+%
 % %% Testing --------------------------------------------------------------
 % 
 % clear;
@@ -69,7 +72,7 @@
 
 
 %% Vortex generation motion function
-function [tvec, hprof, pprof, aeff] = genVortex(U, H, alpha, freq, t0, srate, s, nT)
+function [tvec, hprof, pprof, aeff] = genVortex(U, H, alpha, freq, srate, t0, s, nT)
 %
 % Fully parametrized function to produce the heave and pitch motions for a
 % single vortex.
@@ -125,7 +128,7 @@ narginchk(5, 8)
 % Default values
 
 if ~exist('t0','var')
-    t0 = 0;
+    t0 = 5; % (s)
 end
 
 if ~exist('srate','var')
@@ -198,6 +201,12 @@ pprof = B.*(A_up.*theta_up + A_dw.*theta_dw);
 
 % Resulting effective angle of attack
 aeff = atan(-hdot/U) + pprof;
+
+% Output in correct format
+tvec = tvec';
+hprof = hprof';
+pprof = -pprof'; % for correct frame of reference
+aeff = aeff';
 
 end
 

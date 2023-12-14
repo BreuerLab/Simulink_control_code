@@ -11,7 +11,7 @@ end
 % mkdir(FOLDERNAME);
 
 % FOLDERNAME = experiment.fname;
-FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20231019_VortexThursday_vortex_charaterization\';
+FOLDERNAME = 'R:\ENG_Breuer_Shared\ehandyca\DATA_main_repo\20231211_TestingParametrizedVortexFunction\';
 
 %% Take experiment bias measurement
 
@@ -42,15 +42,15 @@ heave1 = 0; % unused
 
 % MODIFY STROKE PARAMETERS HERE !! ----------------------------------------
 
-fred_up = 0.12; % reduced frequency upstroke
+fred_up = 0.11; % reduced frequency upstroke
 freq_up = fred_up*U/foil.chord; % real frequency upstroke
 
-hstar_up_amp = 2.5; % [chords] heave amplitude in upstroke
+hstar_up_amp = 1.5; % [chords] heave amplitude in upstroke
 heave_up_amp = hstar_up_amp*foil.chord; % [m] dimensional heave amplitude
 
 % Maximum angle of attack desired in upstroke
-AoAmax = -0.5;
-exp_label = 0; % temporary: experiment number
+AoAmax = 0.5;
+exp_label = 2; % temporary: experiment number
 
 % VORTEX GENERATION -------------------------------------------------------
 
@@ -64,8 +64,12 @@ ramp_time = 5; % in [s]
 % Generate motion profile
 dt = 1/experiment.srate; % duration of each time step
 
-profType = 'sinusoidal';
-[time_vec, heave_fn, pitch_fn, AoAmax_calc] = generate_vortex_profile(foil, heave_up_amp, AoAmax, U, fred_up, experiment.srate, profType);
+% profType = 'sinusoidal';
+% [time_vec, heave_fn, pitch_fn, AoAmax_calc] = generate_vortex_profile(foil, heave_up_amp, AoAmax, U, fred_up, experiment.srate, profType);
+
+% From the fully-parametrized analytical function
+[time_vec, heave_fn, pprof, aeff] = genVortex(U, heave_up_amp, AoAmax, freq_up, 10, experiment.srate);
+pitch_fn = -rad2deg(pprof);
 
 disp(['Approximate max velocity: ',num2str(heave_up_amp*2*pi*freq_up),' m/s']);
 
@@ -86,7 +90,7 @@ plot_motion = 'no';
 if strcmp(plot_motion,'yes')
     body = [-foil.chord/2,foil.chord/2; 0,0];
 
-    for frame = 1:40:length(time_vec)
+    for frame = 1:60:length(time_vec)
         % rotate body
         theta = deg2rad(pitch_motion(frame));
         rotation = [cos(theta), -sin(theta); sin(theta), cos(theta)];
@@ -179,7 +183,7 @@ out = convert_output(raw_encoders, raw_force_wallace, raw_force_gromit, raw_vect
 
 %% Save data
 
-FILENAME = (['\20231019_VortexThursday_',num2str(exp_label),'_withFoil_withFlow_',...
+FILENAME = (['\20231211_VortexMonday_TestingParametrizedVortexFunction_',num2str(exp_label),'_',...
     'U=',num2str(U,3),'_AoAmax=',num2str(AoAmax,3),'_p2=',num2str(max(pitch_fn),2),'deg_h2=',num2str(heave_up_amp/foil.chord,3),'c_fred=',num2str(fred_up,3),'.mat']);
 
 clear fig1

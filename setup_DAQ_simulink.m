@@ -11,7 +11,7 @@ setupEmail() % sets up email to send out when experiment is finished
 
 srate = 1000;
 T = 1/srate;
-foil_shape = 'A4E';
+foil_shape = 'A5';
 
 foil = foils_database(foil_shape);
 experiment = setupPrompt(srate,foil);
